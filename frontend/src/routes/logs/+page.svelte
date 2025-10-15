@@ -37,6 +37,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">使用部门</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">使用人</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">变更时间</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">登记人</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -49,6 +50,7 @@
                             <td class="px-4 py-4 whitespace-nowrap text-sm">{log.ggxh}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm">{log.gdzc_user}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm">{formatDateTime(log.bg_time)}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm">{log.gdzc_djuser}</td>
                         </tr>
                     {/each}
                 </tbody>
