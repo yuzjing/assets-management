@@ -1,6 +1,7 @@
 # Assets Manager (资产管理系统)
 
 这是一个全栈资产管理系统项目，后端使用 Go (Gin 框架)，前端使用 SvelteKit 构建。整个应用被设计为可以轻松打包成一个独立的 Docker 镜像进行部署。
+[img](cover.png)]
 
 ## ✨ 技术栈
 
