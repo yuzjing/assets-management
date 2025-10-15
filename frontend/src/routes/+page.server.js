@@ -1,12 +1,12 @@
 // frontend/src/routes/+page.server.js (健壮版)
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ url }) {
+export async function load({ fetch, url }) {
     // 无论成功与否，都先准备好 filters 对象
     const currentFilters = Object.fromEntries(url.searchParams.entries());
 
     try {
-        const response = await fetch(`http://localhost:8123/assets${url.search}`);
+        const response = await fetch(`/api/assets${url.search}`);
         
         if (!response.ok) {
             // 即使失败，也要返回一致的结构

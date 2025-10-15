@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
+
+	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yuzjing/assets-management/database"
@@ -108,17 +111,71 @@ func GetAllLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, logs)
 }
 
+// serveStatic Middleware
+// 这个中间件会尝试从 ./static 目录提供文件服务
+// 如果文件不存在，它会继续执行，让后续的路由（比如 NoRoute）来处理
+func serveStatic(fs http.FileSystem) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 只处理 GET 和 HEAD 请求
+		if c.Request.Method != "GET" && c.Request.Method != "HEAD" {
+			c.Next()
+			return
+		}
+
+		path := c.Request.URL.Path
+		// 检查文件是否存在
+		if _, err := fs.Open(path); err != nil {
+			// 文件不存在，交给下一个处理器 (NoRoute)
+			c.Next()
+			return
+		}
+
+		// 文件存在，直接提供服务
+		http.FileServer(fs).ServeHTTP(c.Writer, c.Request)
+		c.Abort() // 终止请求链
+	}
+}
+
 func main() {
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
+	// 配置并使用 CORS 中间件
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true // 这是最宽松的配置，允许所有源
+	// 或者更安全地，只允许你的前端开发服务器的地址
+	// config.AllowOrigins = []string{"http://localhost:5173"} // 假设你的 Svelte/Vite 前端运行在 5173 端口
+	// config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	// config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type"}
+	// router.Use(cors.New(config))
+
 	database.ConnectDB()
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Welcome",
-		})
+	// router.GET("/", func(c *gin.Context) {
+	// 	c.JSON(200, gin.H{
+	// 		"message": "Welcome",
+	// 	})
+	// })
+	// router.GET("/assets", GetAllAssets)
+	// // router.POST("/assets", CreateAsset)
+	// router.GET("/logs", GetAllLogs)
+	// --- 1. API 路由 (最高优先级) ---
+	// --- 1. API 路由 (最高优先级) ---
+	api := router.Group("/api")
+	{
+		api.GET("/assets", GetAllAssets)
+		api.GET("/logs", GetAllLogs)
+	}
+
+	// --- 2. 智能静态文件服务 (关键！) ---
+	staticFS := http.Dir("./static")
+	router.Use(serveStatic(staticFS)) // 这个中间件会正确地服务 __data.json 等文件
+
+	// --- 3. SPA 路由回退 (最后防线) ---
+	router.NoRoute(func(c *gin.Context) {
+		indexPath := filepath.Join("static", "index.html")
+		c.File(indexPath)
 	})
-	router.GET("/assets", GetAllAssets)
-	// router.POST("/assets", CreateAsset)
-	router.GET("/logs", GetAllLogs)
+
+	fmt.Println("Server is running on port 8123")
 
 	// router.PUT("/assets/:id", UpdateAsset)
 	router.Run(":8123")
