@@ -178,5 +178,5 @@ func main() {
 	fmt.Println("Server is running on port 8123")
 
 	// router.PUT("/assets/:id", UpdateAsset)
-	router.Run(":8123")
+	router.Run("0.0.0.0:8123")
 }

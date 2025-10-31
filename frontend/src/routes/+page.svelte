@@ -17,6 +17,9 @@
         gdzc_je_lte: data.filters.gdzc_je_lte || '',
         gdzc_rzdate_gte: data.filters.gdzc_rzdate_gte || '',
         gdzc_rzdate_lte: data.filters.gdzc_rzdate_lte || '',
+        gdzc_user: data.filters.gdzc_user || '',
+        gdzc_bh: data.filters.gdzc_bh || '',
+        
     };
     let sortBy = data.filters.sortBy || 'gdzc_id';
     let order = data.filters.order || 'asc';
@@ -130,6 +133,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- 文本筛选 -->
                     <div>
+                        <label for="gdzc_user" class="block text-sm font-medium text-gray-700">使用人</label>
+                        <input type="text" id="gdzc_user" bind:value={filters.gdzc_user} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., XXX">
+                    </div>
+                    <div>
+                        <label for="gdzc_bh" class="block text-sm font-medium text-gray-700">资产编号</label>
+                        <input type="text" id="gdzc_bh" bind:value={filters.gdzc_bh} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., SX-BJB-001">
+                    </div>
+                    <div>
                         <label for="gdzc_lb" class="block text-sm font-medium text-gray-700">资产类别</label>
                         <input type="text" id="gdzc_lb" bind:value={filters.gdzc_lb} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 笔记本">
                     </div>
@@ -145,6 +156,7 @@
                         <label for="gdzc_sccj" class="block text-sm font-medium text-gray-700">生产厂家</label>
                         <input type="text" id="gdzc_sccj" bind:value={filters.gdzc_sccj} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 联想">
                     </div>
+                    
 
                     <!-- 范围筛选：金额 -->
                     <div class="md:col-span-2">
