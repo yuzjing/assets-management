@@ -97,12 +97,83 @@ func GetAllAssets(c *gin.Context) {
 	c.JSON(http.StatusOK, assets)
 }
 
+// GetAllLogs 函数 - 已根据 AssetChangeLog 模型精确适配筛选和排序功能
 func GetAllLogs(c *gin.Context) {
-	var logs []models.AssetChangeLog // 使用 AssetChangeLog 模型
+	// --- 白名单 1: 模糊搜索字段 (基于 AssetBase) ---
+	// AssetChangeLog 继承了 AssetBase 的所有字符串字段
+	logLikeFilters := map[string]bool{
+		"gdzc_bh": true, "gdzc_lb": true, "gdzc_ggxh": true, "gdzc_sccj": true,
+		"gdzc_zjfs": true, "gdzc_userbm": true, "gdzc_zt": true, "gdzc_gjxx": true,
+		"gdzc_user": true, "gdzc_gsname": true, "gdzc_dw": true, "gdzc_djuser": true,
+		"gdzc_beizhu": true, // 备注字段也允许模糊搜索
+	}
 
-	// 目前只做最简单的查询，未来也可以像 GetAllAssets 一样增加筛选和排序
-	result := database.DB.Find(&logs)
+	// --- 白名单 2: 范围查询字段 (基于 AssetBase + AssetChangeLog 自身字段) ---
+	logRangeFilters := map[string]bool{
+		"gdzc_je": true, "gdzc_nx": true, "gdzc_rzdate": true,
+		"gdzc_lydate": true, "gdzc_djdate": true,
+		"BGtime": true, // 变更时间字段，非常适合范围查询
+	}
 
+	// --- 白名单 3: 允许排序的字段 ---
+	logAllowedSorts := map[string]bool{
+		"gdzc_ID": true, // 日志表的主键
+		"gdzc_je": true, "gdzc_nx": true, "gdzc_rzdate": true,
+		"gdzc_lydate": true, "gdzc_djdate": true,
+		"BGtime": true, // 按变更时间排序
+	}
+
+	query := database.DB.Model(&models.AssetChangeLog{})
+
+	// --- 1. 处理筛选 ---
+	for key, values := range c.Request.URL.Query() {
+		if len(values) == 0 || values[0] == "" {
+			continue
+		}
+		value := values[0]
+
+		// 检查范围查询
+		isRangeQuery := false
+		operators := map[string]string{"_gte": ">=", "_lte": "<=", "_gt": ">", "_lt": "<"}
+		for suffix, operator := range operators {
+			if strings.HasSuffix(key, suffix) {
+				isRangeQuery = true
+				fieldName := strings.TrimSuffix(key, suffix)
+				if logRangeFilters[fieldName] {
+					query = query.Where(fmt.Sprintf("%s %s ?", fieldName, operator), value)
+				}
+				break
+			}
+		}
+
+		// 检查模糊搜索
+		if !isRangeQuery {
+			if logLikeFilters[key] {
+				query = query.Where(fmt.Sprintf("%s LIKE ?", key), "%"+value+"%")
+			}
+		}
+	}
+
+	// --- 2. 处理排序 ---
+	// 默认按变更时间（BGtime）降序排序，最新的日志记录在前
+	sortBy := c.DefaultQuery("sortBy", "BGtime")
+	order := c.DefaultQuery("order", "desc")
+
+	if logAllowedSorts[sortBy] {
+		if strings.ToLower(order) == "asc" {
+			order = "ASC"
+		} else {
+			order = "DESC"
+		}
+		orderClause := fmt.Sprintf("%s %s", sortBy, order)
+		query = query.Order(orderClause)
+	}
+
+	// --- 3. 执行查询 ---
+	var logs []models.AssetChangeLog
+	result := query.Find(&logs)
+
+	// --- 4. 返回结果 ---
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
@@ -146,18 +217,10 @@ func main() {
 	// config.AllowOrigins = []string{"http://localhost:5173"} // 假设你的 Svelte/Vite 前端运行在 5173 端口
 	// config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	// config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type"}
-	// router.Use(cors.New(config))
+	router.Use(cors.New(config))
 
 	database.ConnectDB()
-	// router.GET("/", func(c *gin.Context) {
-	// 	c.JSON(200, gin.H{
-	// 		"message": "Welcome",
-	// 	})
-	// })
-	// router.GET("/assets", GetAllAssets)
-	// // router.POST("/assets", CreateAsset)
-	// router.GET("/logs", GetAllLogs)
-	// --- 1. API 路由 (最高优先级) ---
+
 	// --- 1. API 路由 (最高优先级) ---
 	api := router.Group("/api")
 	{
@@ -177,6 +240,5 @@ func main() {
 
 	fmt.Println("Server is running on port 8123")
 
-	// router.PUT("/assets/:id", UpdateAsset)
 	router.Run("0.0.0.0:8123")
 }
